@@ -1,5 +1,4 @@
 {
-<<<<<<< HEAD
   "name": "client",
   "private": true,
   "version": "0.0.0",
@@ -11,13 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.1.18",
-    "axios": "^1.13.4",
-    "dotenv": "^17.2.3",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "react-router-dom": "^7.13.0",
-    "tailwindcss": "^4.1.18"
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
@@ -30,16 +24,4 @@
     "globals": "^16.5.0",
     "vite": "^7.2.4"
   }
-=======
-  "name": "to-do-list",
-  "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": ""
->>>>>>> fccb40918d66cfbd09534558cb3646579bd52590
 }
