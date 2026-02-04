@@ -28,6 +28,19 @@ function App() {
       <p className="read-the-docs">
         Click on the Vite and React logos to learn more
       </p>
+
+      {/* ===== NEW EDIT START ===== */}
+      <div className="new-section" style={{ marginTop: '20px', textAlign: 'center' }}>
+        <h2>Welcome to Jerico's To-Do App!</h2>
+        <p>Start adding your tasks and stay organized.</p>
+        <button 
+          style={{ padding: '10px 20px', backgroundColor: '#4ade80', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
+          onClick={() => alert('Add your first task!')}
+        >
+          Add Sample Task
+        </button>
+      </div>
+      {/* ===== NEW EDIT END ===== */}
     </>
   )
 }
