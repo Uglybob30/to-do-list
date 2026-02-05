@@ -1,86 +1,144 @@
+import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import axios from "axios";
+
 function Register() {
+  const navigate = useNavigate();
+
+  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+
+  const [message, setMessage] = useState("");
+  const [type, setType] = useState(""); // "success" or "error"
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+
+    // Check if password matches confirm
+    if (password !== confirm) {
+      setType("error");
+      setMessage("Passwords do not match");
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/register`,
+        { name, username, password }
+      );
+
+      if (response.data.success) {
+        setType("success");
+        setMessage("Registration successful! Redirecting...");
+        // Redirect after 2 seconds
+        setTimeout(() => navigate("/"), 2000);
+      } else {
+        setType("error");
+        setMessage(response.data.message || "Registration failed");
+      }
+    } catch (error) {
+      setType("error");
+      setMessage("An error occurred. Please try again.");
+    }
+  };
+
   return (
-    <> 
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 via-white to-blue-100 transition px-4">
-        <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-sm border border-gray-200 transition-all">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 via-white to-blue-100 transition px-4">
+      <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-sm border border-gray-200 transition-all">
 
-          <h1 className="text-4xl font-bold text-center mb-6 text-gray-800 tracking-wide">
-            Create Account
-          </h1>
+        <h1 className="text-4xl font-bold text-center mb-6 text-gray-800 tracking-wide">
+          Create Account
+        </h1>
 
-          <form className="space-y-4">
-            {/* Name */}
-            <input
-              type="text"
-              placeholder="Name"
-              className="w-full px-4 py-2 border border-gray-200 rounded-xl 
-                         bg-gray-50 text-gray-800
-                         focus:outline-none focus:ring-2 focus:ring-indigo-400 
-                         transition-all"
-              required
-            />
+        {/* Inline message */}
+        {message && (
+          <div
+            className={`mb-4 text-center py-2 rounded-lg font-medium ${
+              type === "success"
+                ? "bg-green-100 text-green-700"
+                : "bg-red-100 text-red-700"
+            }`}
+          >
+            {message}
+          </div>
+        )}
 
-            {/* Username */}
-            <input
-              type="text"
-              placeholder="Username"
-              className="w-full px-4 py-2 border border-gray-200 rounded-xl 
-                         bg-gray-50 text-gray-800
-                         focus:outline-none focus:ring-2 focus:ring-indigo-400 
-                         transition-all"
-              required
-            />
+        <form onSubmit={handleRegister} className="space-y-4">
+          <input
+            type="text"
+            placeholder="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-200 rounded-xl 
+                       bg-gray-50 text-gray-800
+                       focus:outline-none focus:ring-2 focus:ring-indigo-400 
+                       transition-all"
+            required
+          />
 
-            {/* Password */}
-            <input
-              type="password"
-              placeholder="Password"
-              className="w-full px-4 py-2 border border-gray-200 rounded-xl 
-                         bg-gray-50 text-gray-800
-                         focus:outline-none focus:ring-2 focus:ring-indigo-400 
-                         transition-all"
-              required
-            />
+          <input
+            type="text"
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-200 rounded-xl 
+                       bg-gray-50 text-gray-800
+                       focus:outline-none focus:ring-2 focus:ring-indigo-400 
+                       transition-all"
+            required
+          />
 
-            {/* Confirm Password */}
-            <input
-              type="password"
-              placeholder="Confirm Password"
-              className="w-full px-4 py-2 border border-gray-200 rounded-xl 
-                         bg-gray-50 text-gray-800
-                         focus:outline-none focus:ring-2 focus:ring-indigo-400 
-                         transition-all"
-              required
-            />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-200 rounded-xl 
+                       bg-gray-50 text-gray-800
+                       focus:outline-none focus:ring-2 focus:ring-indigo-400 
+                       transition-all"
+            required
+          />
 
-            {/* Register Button */}
-            <button
-              type="submit"
-              className="w-full bg-gradient-to-r from-indigo-500 to-blue-500 
-                         text-white p-2 rounded-xl font-semibold
-                         hover:from-indigo-600 hover:to-blue-600 
-                         transition-all active:scale-95 shadow-md"
+          <input
+            type="password"
+            placeholder="Confirm Password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-200 rounded-xl 
+                       bg-gray-50 text-gray-800
+                       focus:outline-none focus:ring-2 focus:ring-indigo-400 
+                       transition-all"
+            required
+          />
+
+          <button
+            type="submit"
+            className="w-full bg-gradient-to-r from-indigo-500 to-blue-500 
+                       text-white p-2 rounded-xl font-semibold
+                       hover:from-indigo-600 hover:to-blue-600 
+                       transition-all active:scale-95 shadow-md"
+          >
+            Register
+          </button>
+
+          <div className="text-center text-gray-400">— or —</div>
+
+          <p className="text-center mb-2 text-gray-500">
+            already have an account?{" "}
+            <Link
+              to="/"
+              className="text-indigo-600 hover:text-indigo-800 font-semibold transition"
             >
-              Register
-            </button>
-
-            <div className="text-center text-gray-400">— or —</div>
-
-            <p className="text-center mb-2 text-gray-500">
-              already have an account?{" "}
-              <a
-                href="/"
-                className="text-indigo-600 hover:text-indigo-800 font-semibold transition"
-              >
-                login here
-              </a>
-            </p>
-
-          </form>
-        </div>
+              login here
+            </Link>
+          </p>
+        </form>
       </div>
-    </>
-  )
+    </div>
+  );
 }
 
-export default Register
+export default Register;
