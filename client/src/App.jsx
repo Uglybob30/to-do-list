@@ -1,32 +1,58 @@
-import { Link } from "react-router-dom";
-import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import axios from "axios";
 
 function App() {
+  const navigate = useNavigate();
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
-  const [type, setType] = useState(""); // success | error
+  const [message, setMessage] = useState(""); // inline message
+  const [type, setType] = useState(""); // "success" | "error"
+  const [loading, setLoading] = useState(false);
+
+  // Auto-redirect if session exists
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/get-session`, { withCredentials: true });
+        if (response.data.session) {
+          navigate("/home");
+        }
+      } catch (err) {
+        console.log("No active session");
+      }
+    };
+    checkSession();
+  }, [navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setMessage("");
+    setType("");
+    setLoading(true);
 
     try {
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/login`,
-        { username, password }
+        { username, password },
+        { withCredentials: true } // important for session cookies
       );
 
       if (response.data.success) {
         setType("success");
-        setMessage("Login successful!");
+        setMessage("Login successful! Redirecting...");
+        // redirect to /home after 1 second
+        setTimeout(() => navigate("/home"), 1000);
       } else {
         setType("error");
-        setMessage(response.data.message);
+        setMessage(response.data.message || "Login failed");
       }
-    } catch (error) {
+    } catch (err) {
       setType("error");
-      setMessage("Username or password is incorrect");
+      setMessage(err.response?.data?.message || "Username or password is incorrect");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -38,12 +64,13 @@ function App() {
           Welcome Back
         </h1>
 
+        {/* Inline success/error message */}
         {message && (
           <div
             className={`mb-4 text-sm text-center rounded-lg py-2 font-medium ${
               type === "success"
-                ? "bg-green-100 text-green-600"
-                : "bg-red-100 text-red-600"
+                ? "bg-green-100 text-green-700"
+                : "bg-red-100 text-red-700"
             }`}
           >
             {message}
@@ -52,9 +79,7 @@ function App() {
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-sm mb-1 text-gray-600">
-              Username
-            </label>
+            <label className="block text-sm mb-1 text-gray-600">Username</label>
             <input
               type="text"
               value={username}
@@ -68,9 +93,7 @@ function App() {
           </div>
 
           <div>
-            <label className="block text-sm mb-1 text-gray-600">
-              Password
-            </label>
+            <label className="block text-sm mb-1 text-gray-600">Password</label>
             <input
               type="password"
               value={password}
@@ -85,11 +108,12 @@ function App() {
 
           <button
             type="submit"
+            disabled={loading}
             className="w-full bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600
                        text-white py-2 rounded-xl font-semibold tracking-wide
-                       transition-all duration-200 active:scale-95 shadow-md"
+                       transition-all duration-200 active:scale-95 shadow-md disabled:opacity-50"
           >
-            Login
+            {loading ? "Logging in..." : "Login"}
           </button>
 
           <p className="text-center text-sm text-gray-500">
