@@ -11,12 +11,11 @@ function Register() {
   const [confirm, setConfirm] = useState("");
 
   const [message, setMessage] = useState("");
-  const [type, setType] = useState(""); // "success" or "error"
+  const [type, setType] = useState(""); // "success" | "error"
 
   const handleRegister = async (e) => {
     e.preventDefault();
 
-    // Check if password matches confirm
     if (password !== confirm) {
       setType("error");
       setMessage("Passwords do not match");
@@ -26,13 +25,12 @@ function Register() {
     try {
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/register`,
-        { name, username, password }
+        { name, username, password, confirm }
       );
 
       if (response.data.success) {
         setType("success");
-        setMessage("Registration successful! Redirecting...");
-        // Redirect after 2 seconds
+        setMessage("Registered successfully! Redirecting...");
         setTimeout(() => navigate("/"), 2000);
       } else {
         setType("error");
@@ -40,7 +38,7 @@ function Register() {
       }
     } catch (error) {
       setType("error");
-      setMessage("An error occurred. Please try again.");
+      setMessage(error.response?.data?.message || "Something went wrong");
     }
   };
 
@@ -71,10 +69,7 @@ function Register() {
             placeholder="Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-200 rounded-xl 
-                       bg-gray-50 text-gray-800
-                       focus:outline-none focus:ring-2 focus:ring-indigo-400 
-                       transition-all"
+            className="w-full px-4 py-2 border border-gray-200 rounded-xl bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all"
             required
           />
 
@@ -83,10 +78,7 @@ function Register() {
             placeholder="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-200 rounded-xl 
-                       bg-gray-50 text-gray-800
-                       focus:outline-none focus:ring-2 focus:ring-indigo-400 
-                       transition-all"
+            className="w-full px-4 py-2 border border-gray-200 rounded-xl bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all"
             required
           />
 
@@ -95,10 +87,7 @@ function Register() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-200 rounded-xl 
-                       bg-gray-50 text-gray-800
-                       focus:outline-none focus:ring-2 focus:ring-indigo-400 
-                       transition-all"
+            className="w-full px-4 py-2 border border-gray-200 rounded-xl bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all"
             required
           />
 
@@ -107,19 +96,13 @@ function Register() {
             placeholder="Confirm Password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-200 rounded-xl 
-                       bg-gray-50 text-gray-800
-                       focus:outline-none focus:ring-2 focus:ring-indigo-400 
-                       transition-all"
+            className="w-full px-4 py-2 border border-gray-200 rounded-xl bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all"
             required
           />
 
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-indigo-500 to-blue-500 
-                       text-white p-2 rounded-xl font-semibold
-                       hover:from-indigo-600 hover:to-blue-600 
-                       transition-all active:scale-95 shadow-md"
+            className="w-full bg-gradient-to-r from-indigo-500 to-blue-500 text-white p-2 rounded-xl font-semibold hover:from-indigo-600 hover:to-blue-600 transition-all active:scale-95 shadow-md"
           >
             Register
           </button>
@@ -128,10 +111,7 @@ function Register() {
 
           <p className="text-center mb-2 text-gray-500">
             already have an account?{" "}
-            <Link
-              to="/"
-              className="text-indigo-600 hover:text-indigo-800 font-semibold transition"
-            >
+            <Link to="/" className="text-indigo-600 hover:text-indigo-800 font-semibold transition">
               login here
             </Link>
           </p>
