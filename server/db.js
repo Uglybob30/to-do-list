@@ -3,7 +3,7 @@ const { Pool } = pkg;
 
 export const pool = new Pool({
     user: 'postgres',
-    host: 'localhost',
+    host: 'neondb',
     database: 'to_do_list',
     password: 'Jerico30',
     port: 5432

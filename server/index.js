@@ -135,8 +135,10 @@ app.post('/login', async (req, res) => {
             return res.status(400).json({ success: false, message: "Invalid username or password" });
         }
 
+        // Include username in session for /get-session
         req.session.user = {
             id: user.id,
+            username: user.username,
             name: user.name
         };
 
@@ -146,6 +148,7 @@ app.post('/login', async (req, res) => {
             user: req.session.user
         });
     } catch (err) {
+        console.error(err);
         res.status(500).json({ success: false, message: err.message });
     }
 });

@@ -36,21 +36,23 @@ function App() {
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/login`,
         { username, password },
-        { withCredentials: true } // important for session cookies
+        { withCredentials: true }
       );
 
       if (response.data.success) {
         setType("success");
         setMessage("Login successful! Redirecting...");
-        // redirect to /home after 1 second
+
+        // Redirect to /home after 1 second
         setTimeout(() => navigate("/home"), 1000);
       } else {
         setType("error");
-        setMessage(response.data.message || "Login failed");
+        setMessage(response.data.message || "Invalid username or password");
       }
     } catch (err) {
       setType("error");
-      setMessage(err.response?.data?.message || "Username or password is incorrect");
+      // Display backend message if available
+      setMessage(err.response?.data?.message || "Invalid username or password");
     } finally {
       setLoading(false);
     }
@@ -86,8 +88,7 @@ function App() {
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Enter username"
               className="w-full px-4 py-2 rounded-xl bg-gray-50 text-gray-800 border border-gray-200
-                         focus:outline-none focus:ring-2 focus:ring-indigo-400
-                         placeholder-gray-400 transition-all"
+                         focus:outline-none focus:ring-2 focus:ring-indigo-400 placeholder-gray-400 transition-all"
               required
             />
           </div>
@@ -100,8 +101,7 @@ function App() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter password"
               className="w-full px-4 py-2 rounded-xl bg-gray-50 text-gray-800 border border-gray-200
-                         focus:outline-none focus:ring-2 focus:ring-indigo-400
-                         placeholder-gray-400 transition-all"
+                         focus:outline-none focus:ring-2 focus:ring-indigo-400 placeholder-gray-400 transition-all"
               required
             />
           </div>
@@ -110,8 +110,7 @@ function App() {
             type="submit"
             disabled={loading}
             className="w-full bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600
-                       text-white py-2 rounded-xl font-semibold tracking-wide
-                       transition-all duration-200 active:scale-95 shadow-md disabled:opacity-50"
+                       text-white py-2 rounded-xl font-semibold tracking-wide transition-all duration-200 active:scale-95 shadow-md disabled:opacity-50"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
