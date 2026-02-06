@@ -3,6 +3,8 @@ import { pool } from './db.js';
 import bcrypt from 'bcryptjs';
 import { hashPassword, comparePassword } from './components/hash.js';
 import session from 'express-session';
+import "dotenv/config";
+
 
 const app = express();
 const PORT = 3000;
