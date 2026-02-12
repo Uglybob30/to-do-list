@@ -8,7 +8,7 @@ import { hashPassword, comparePassword } from "./components/hash.js";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ======================
+
 // MIDDLEWARE
 // ======================
 app.set("trust proxy", 1);
