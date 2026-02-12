@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import Header from "../components/Header.jsx";
 
 export default function Home() {
@@ -14,16 +15,13 @@ export default function Home() {
   // ======================
   const checkSession = async () => {
     try {
-      const res = await fetch(`${API}/get-session`, { credentials: "include" });
-      const data = await res.json();
-      if (!data.session) {
-        navigate("/"); // redirect to login
-        return false;
-      }
-      return true;
+      const res = await axios.get(`${API}/get-session`, { withCredentials: true });
+      if (!res.data.session) navigate("/");
+      return res.data.session;
     } catch (err) {
       console.error(err);
       navigate("/");
+      return false;
     }
   };
 
@@ -32,27 +30,16 @@ export default function Home() {
   // ======================
   const fetchLists = async () => {
     try {
-      const res = await fetch(`${API}/get-list`, { credentials: "include" });
-      const data = await res.json();
-      if (data.success) {
-        setLists(data.list);
-        localStorage.setItem("myLists", JSON.stringify(data.list)); // save to localStorage
+      const res = await axios.get(`${API}/get-list`, { withCredentials: true });
+      if (res.data.success) {
+        setLists(res.data.list);
+        localStorage.setItem("myLists", JSON.stringify(res.data.list));
       }
     } catch (err) {
       console.error(err);
-
-      // fallback: load from localStorage
       const saved = JSON.parse(localStorage.getItem("myLists") || "[]");
       if (saved.length > 0) setLists(saved);
     }
-  };
-
-  // ======================
-  // LOGOUT
-  // ======================
-  const logout = async () => {
-    await fetch(`${API}/logout`, { credentials: "include" });
-    navigate("/");
   };
 
   useEffect(() => {
@@ -63,34 +50,38 @@ export default function Home() {
     init();
   }, []);
 
-  // ======================
-  // SAVE LISTS TO LOCALSTORAGE ON CHANGE
-  // ======================
   useEffect(() => {
     localStorage.setItem("myLists", JSON.stringify(lists));
   }, [lists]);
+
+  // ======================
+  // LOGOUT
+  // ======================
+  const logout = async () => {
+    try {
+      await axios.get(`${API}/logout`, { withCredentials: true });
+      navigate("/");
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   // ======================
   // ADD LIST
   // ======================
   const addList = async () => {
     if (!title.trim()) return;
-
     try {
-      const res = await fetch(`${API}/add-list`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ listTitle: title }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        setLists(prev => [data.list, ...prev]); // add to top
+      const res = await axios.post(
+        `${API}/add-list`,
+        { listTitle: title },
+        { withCredentials: true }
+      );
+      if (res.data.success) {
+        setLists(prev => [res.data.list, ...prev]);
         inputRef.current.focus(); // keep focus
-        // title remains typed
       } else {
-        alert(data.message);
+        alert(res.data.message);
       }
     } catch (err) {
       console.error(err);
@@ -102,12 +93,8 @@ export default function Home() {
   // ======================
   const deleteList = async (id) => {
     if (!confirm("Delete this list?")) return;
-
     try {
-      await fetch(`${API}/delete-list/${id}`, {
-        method: "POST",
-        credentials: "include",
-      });
+      await axios.post(`${API}/delete-list/${id}`, {}, { withCredentials: true });
       setLists(prev => prev.filter(l => l.id !== id));
     } catch (err) {
       console.error(err);
@@ -117,7 +104,6 @@ export default function Home() {
   return (
     <>
       <Header />
-
       <div className="p-6 max-w-md mx-auto">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">My Lists</h1>
@@ -129,15 +115,14 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Add list */}
         <div className="mb-4 flex gap-2">
           <input
             ref={inputRef}
             type="text"
-            className="flex-1 border px-3 py-2 rounded-md"
             placeholder="New list title..."
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            className="flex-1 border px-3 py-2 rounded-md"
           />
           <button
             onClick={addList}
@@ -147,7 +132,6 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Lists */}
         <div className="space-y-2">
           {lists.length === 0 && <p className="text-gray-500">No lists yet.</p>}
           {lists.map((list) => (

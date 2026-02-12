@@ -16,14 +16,14 @@ export default function Register() {
   const [type, setType] = useState(""); // "success" | "error"
   const [loading, setLoading] = useState(false);
 
-  // Redirect to home if already logged in
+  // Redirect to home if session exists
   useEffect(() => {
     const checkSession = async () => {
       try {
         const res = await axios.get(`${API}/get-session`, { withCredentials: true });
         if (res.data.session) navigate("/home");
       } catch {
-        // ignore
+        // ignore errors
       }
     };
     checkSession();
@@ -48,21 +48,15 @@ export default function Register() {
       setLoading(true);
       const res = await axios.post(
         `${API}/register`,
-        {
-          name: form.name,
-          username: form.username,
-          password: form.password,
-        },
+        { name: form.name, username: form.username, password: form.password },
         { withCredentials: true }
       );
 
       if (res.data.success) {
         setType("success");
         setMessage("Registered successfully! Redirecting to login...");
-
         setForm({ name: "", username: "", password: "", confirmPassword: "" });
 
-        // Redirect to login page (/)
         setTimeout(() => navigate("/"), 1000);
       } else {
         setType("error");

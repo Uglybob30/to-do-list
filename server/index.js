@@ -8,20 +8,37 @@ import { hashPassword, comparePassword } from "./components/hash.js";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-
-// MIDDLEWARE
 // ======================
-app.set("trust proxy", 1);
+// CORS CONFIG
+// ======================
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://to-do-list-three-alpha-83.vercel.app" // add your Vercel frontend URL
+];
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://to-do-list-7b6c.vercel.app"],
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true); // allow non-browser requests
+      if (allowedOrigins.indexOf(origin) === -1) {
+        return callback(new Error(`CORS policy: The origin ${origin} is not allowed`), false);
+      }
+      return callback(null, true);
+    },
     credentials: true,
   })
 );
 
+// ======================
+// BODY PARSING
+// ======================
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// ======================
+// SESSION CONFIG
+// ======================
+app.set("trust proxy", 1); // needed for secure cookies behind proxy
 
 app.use(
   session({
@@ -30,9 +47,10 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production", // true in prod (HTTPS)
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24, // 1 day
     },
   })
 );
@@ -102,8 +120,6 @@ app.get("/get-session", (req, res) => {
 // ======================
 // LIST ROUTES
 // ======================
-
-// Get all lists
 app.get("/get-list", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM list ORDER BY created_at DESC");
@@ -113,7 +129,6 @@ app.get("/get-list", async (req, res) => {
   }
 });
 
-// Add list
 app.post("/add-list", async (req, res) => {
   try {
     const { listTitle } = req.body;
@@ -131,7 +146,6 @@ app.post("/add-list", async (req, res) => {
   }
 });
 
-// Delete list
 app.post("/delete-list/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -146,15 +160,10 @@ app.post("/delete-list/:id", async (req, res) => {
 // ======================
 // ITEM ROUTES
 // ======================
-
-// Get items by list UUID
 app.get("/get-items/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await pool.query(
-      "SELECT * FROM items WHERE list_id=$1 ORDER BY created_at",
-      [id]
-    );
+    const result = await pool.query("SELECT * FROM items WHERE list_id=$1 ORDER BY created_at", [id]);
     res.json({ success: true, items: result.rows });
   } catch (err) {
     console.error("GET ITEMS ERROR:", err);
@@ -162,7 +171,6 @@ app.get("/get-items/:id", async (req, res) => {
   }
 });
 
-// Add item
 app.post("/add-item", async (req, res) => {
   try {
     const { listId, description } = req.body;
@@ -180,7 +188,6 @@ app.post("/add-item", async (req, res) => {
   }
 });
 
-// Delete item
 app.post("/delete-item/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -192,7 +199,6 @@ app.post("/delete-item/:id", async (req, res) => {
   }
 });
 
-// Update item
 app.post("/update-item/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -228,4 +234,7 @@ app.post("/update-item/:id", async (req, res) => {
   }
 });
 
+// ======================
+// START SERVER
+// ======================
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));

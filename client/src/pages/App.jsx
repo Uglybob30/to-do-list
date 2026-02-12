@@ -12,7 +12,7 @@ export default function Login() {
   const [type, setType] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Auto-redirect if session exists
+  // Redirect if session exists
   useEffect(() => {
     const checkSession = async () => {
       try {
