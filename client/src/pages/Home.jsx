@@ -1,31 +1,29 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header.jsx";
 
 export default function Home() {
   const [lists, setLists] = useState([]);
   const [title, setTitle] = useState("");
+  const inputRef = useRef(null);
   const navigate = useNavigate();
-
   const API = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
   // ======================
-  // CHECK SESSION FIRST
+  // SESSION CHECK
   // ======================
   const checkSession = async () => {
     try {
-      const res = await fetch(`${API}/get-session`, {
-        credentials: "include",
-      });
+      const res = await fetch(`${API}/get-session`, { credentials: "include" });
       const data = await res.json();
       if (!data.session) {
-        navigate("/login");
+        navigate("/"); // redirect to login
         return false;
       }
       return true;
     } catch (err) {
       console.error(err);
-      navigate("/login");
+      navigate("/");
     }
   };
 
@@ -36,9 +34,16 @@ export default function Home() {
     try {
       const res = await fetch(`${API}/get-list`, { credentials: "include" });
       const data = await res.json();
-      if (data.success) setLists(data.list);
+      if (data.success) {
+        setLists(data.list);
+        localStorage.setItem("myLists", JSON.stringify(data.list)); // save to localStorage
+      }
     } catch (err) {
       console.error(err);
+
+      // fallback: load from localStorage
+      const saved = JSON.parse(localStorage.getItem("myLists") || "[]");
+      if (saved.length > 0) setLists(saved);
     }
   };
 
@@ -47,7 +52,7 @@ export default function Home() {
   // ======================
   const logout = async () => {
     await fetch(`${API}/logout`, { credentials: "include" });
-    navigate("/login");
+    navigate("/");
   };
 
   useEffect(() => {
@@ -57,6 +62,13 @@ export default function Home() {
     };
     init();
   }, []);
+
+  // ======================
+  // SAVE LISTS TO LOCALSTORAGE ON CHANGE
+  // ======================
+  useEffect(() => {
+    localStorage.setItem("myLists", JSON.stringify(lists));
+  }, [lists]);
 
   // ======================
   // ADD LIST
@@ -71,12 +83,12 @@ export default function Home() {
         credentials: "include",
         body: JSON.stringify({ listTitle: title }),
       });
-      const data = await res.json();
 
+      const data = await res.json();
       if (data.success) {
-        // Keep the input value as-is so it remains typed
-        setLists(prev => [data.list, ...prev]);
-        // <-- REMOVE setTitle("") so it does not clear
+        setLists(prev => [data.list, ...prev]); // add to top
+        inputRef.current.focus(); // keep focus
+        // title remains typed
       } else {
         alert(data.message);
       }
@@ -90,8 +102,12 @@ export default function Home() {
   // ======================
   const deleteList = async (id) => {
     if (!confirm("Delete this list?")) return;
+
     try {
-      await fetch(`${API}/delete-list/${id}`, { method: "POST", credentials: "include" });
+      await fetch(`${API}/delete-list/${id}`, {
+        method: "POST",
+        credentials: "include",
+      });
       setLists(prev => prev.filter(l => l.id !== id));
     } catch (err) {
       console.error(err);
@@ -116,6 +132,7 @@ export default function Home() {
         {/* Add list */}
         <div className="mb-4 flex gap-2">
           <input
+            ref={inputRef}
             type="text"
             className="flex-1 border px-3 py-2 rounded-md"
             placeholder="New list title..."

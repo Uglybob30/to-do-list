@@ -1,31 +1,11 @@
 // server/db.js
-import dotenv from "dotenv";
+import "dotenv/config";  // <-- ensure env vars loaded
 import pkg from "pg";
 const { Pool } = pkg;
 
-// Load .env only in local development
-dotenv.config();
+if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is missing");
 
-// Check DATABASE_URL
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
-  throw new Error("DATABASE_URL is missing. Please set it in .env (local) or Render environment variables (production).");
-}
-
-// Create pool with SSL for Neon
 export const pool = new Pool({
-  connectionString: connectionString.trim(),
-  ssl: {
-    rejectUnauthorized: false, // required for Neon
-  },
+  connectionString: process.env.DATABASE_URL.trim(),
+  ssl: { rejectUnauthorized: false },
 });
-
-// Optional: test the connection when the server starts
-pool.connect()
-  .then(client => {
-    console.log("✅ Connected to the database successfully!");
-    client.release();
-  })
-  .catch(err => {
-    console.error("❌ DB connection error:", err);
-  });

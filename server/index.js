@@ -1,29 +1,21 @@
-// server/index.js
-import dotenv from "dotenv";
+import "dotenv/config";
 import express from "express";
 import { pool } from "./db.js";
 import session from "express-session";
 import cors from "cors";
 import { hashPassword, comparePassword } from "./components/hash.js";
 
-// Load .env only in development
-dotenv.config();
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ======================
+
 // MIDDLEWARE
 // ======================
-app.set("trust proxy", 1); // required for Render + secure cookies
+app.set("trust proxy", 1);
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "https://to-do-list-7b6c.vercel.app",
-      "https://your-render-domain.onrender.com", // add your Render frontend if needed
-    ],
+    origin: ["http://localhost:5173", "https://to-do-list-7b6c.vercel.app"],
     credentials: true,
   })
 );
@@ -38,7 +30,7 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === "production", // HTTPS required
+      secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       httpOnly: true,
     },
@@ -48,13 +40,9 @@ app.use(
 // ======================
 // TEST DB CONNECTION
 // ======================
-pool
-  .connect()
-  .then((client) => {
-    console.log("✅ DB connected successfully!");
-    client.release();
-  })
-  .catch((err) => console.error("❌ DB connection error:", err));
+pool.query("SELECT NOW()")
+  .then(res => console.log("✅ DB connected:", res.rows[0]))
+  .catch(err => console.error("❌ DB connection error:", err));
 
 // ======================
 // AUTH ROUTES
@@ -62,14 +50,10 @@ pool
 app.post("/register", async (req, res) => {
   try {
     const { username, password, name } = req.body;
-    if (!username || !password || !name)
-      return res.json({ success: false, message: "Incomplete data" });
+    if (!username || !password || !name) return res.json({ success: false, message: "Incomplete data" });
 
-    const exists = await pool.query("SELECT id FROM users WHERE username=$1", [
-      username,
-    ]);
-    if (exists.rows.length > 0)
-      return res.json({ success: false, message: "User exists" });
+    const exists = await pool.query("SELECT id FROM users WHERE username=$1", [username]);
+    if (exists.rows.length > 0) return res.json({ success: false, message: "User exists" });
 
     const hashed = await hashPassword(password);
     const result = await pool.query(
@@ -88,16 +72,12 @@ app.post("/register", async (req, res) => {
 app.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
-    const result = await pool.query("SELECT * FROM users WHERE username=$1", [
-      username,
-    ]);
-    if (!result.rows.length)
-      return res.json({ success: false, message: "User not found" });
+    const result = await pool.query("SELECT * FROM users WHERE username=$1", [username]);
+    if (!result.rows.length) return res.json({ success: false, message: "User not found" });
 
     const user = result.rows[0];
     const isMatch = await comparePassword(password, user.password);
-    if (!isMatch)
-      return res.json({ success: false, message: "Incorrect password" });
+    if (!isMatch) return res.json({ success: false, message: "Incorrect password" });
 
     req.session.user = { id: user.id, username: user.username, name: user.name };
     res.json({ success: true, user: req.session.user });
@@ -122,6 +102,8 @@ app.get("/get-session", (req, res) => {
 // ======================
 // LIST ROUTES
 // ======================
+
+// Get all lists
 app.get("/get-list", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM list ORDER BY created_at DESC");
@@ -131,11 +113,11 @@ app.get("/get-list", async (req, res) => {
   }
 });
 
+// Add list
 app.post("/add-list", async (req, res) => {
   try {
     const { listTitle } = req.body;
-    if (!listTitle || listTitle.trim() === "")
-      return res.json({ success: false, message: "List title required" });
+    if (!listTitle || listTitle.trim() === "") return res.json({ success: false, message: "List title required" });
 
     const result = await pool.query(
       "INSERT INTO list (title) VALUES ($1) RETURNING *",
@@ -149,6 +131,7 @@ app.post("/add-list", async (req, res) => {
   }
 });
 
+// Delete list
 app.post("/delete-list/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -163,6 +146,8 @@ app.post("/delete-list/:id", async (req, res) => {
 // ======================
 // ITEM ROUTES
 // ======================
+
+// Get items by list UUID
 app.get("/get-items/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -177,11 +162,11 @@ app.get("/get-items/:id", async (req, res) => {
   }
 });
 
+// Add item
 app.post("/add-item", async (req, res) => {
   try {
     const { listId, description } = req.body;
-    if (!listId || !description || description.trim() === "")
-      return res.json({ success: false, message: "Missing listId or description" });
+    if (!listId || !description || description.trim() === "") return res.json({ success: false, message: "Missing listId or description" });
 
     const result = await pool.query(
       "INSERT INTO items (list_id, description) VALUES ($1,$2) RETURNING *",
@@ -195,6 +180,7 @@ app.post("/add-item", async (req, res) => {
   }
 });
 
+// Delete item
 app.post("/delete-item/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -206,13 +192,13 @@ app.post("/delete-item/:id", async (req, res) => {
   }
 });
 
+// Update item
 app.post("/update-item/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const { description, status } = req.body;
 
-    if (!description && !status)
-      return res.json({ success: false, message: "Nothing to update" });
+    if (!description && !status) return res.json({ success: false, message: "Nothing to update" });
 
     let query = "UPDATE items SET ";
     const params = [];
@@ -242,7 +228,4 @@ app.post("/update-item/:id", async (req, res) => {
   }
 });
 
-// ======================
-// START SERVER
-// ======================
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));

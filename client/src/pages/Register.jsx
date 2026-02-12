@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 
 export default function Register() {
@@ -12,12 +12,11 @@ export default function Register() {
     password: "",
     confirmPassword: "",
   });
-
-  const [message, setMessage] = useState(""); // Inline success/error
+  const [message, setMessage] = useState("");
   const [type, setType] = useState(""); // "success" | "error"
   const [loading, setLoading] = useState(false);
 
-  // Auto-redirect if already logged in
+  // Redirect to home if already logged in
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -59,11 +58,12 @@ export default function Register() {
 
       if (res.data.success) {
         setType("success");
-        setMessage("Registered successfully! Redirecting to Home...");
+        setMessage("Registered successfully! Redirecting to login...");
+
         setForm({ name: "", username: "", password: "", confirmPassword: "" });
 
-        // Redirect to /home after 1 second
-        setTimeout(() => navigate("/home"), 1000);
+        // Redirect to login page (/)
+        setTimeout(() => navigate("/"), 1000);
       } else {
         setType("error");
         setMessage(res.data.message || "Registration failed");
@@ -80,9 +80,7 @@ export default function Register() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
-          Register
-        </h2>
+        <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Register</h2>
 
         {message && (
           <div
@@ -141,9 +139,9 @@ export default function Register() {
 
         <p className="mt-4 text-sm text-gray-600 text-center">
           Already have an account?{" "}
-          <a href="/login" className="text-blue-500 hover:underline">
+          <Link to="/" className="text-blue-500 hover:underline">
             Login
-          </a>
+          </Link>
         </p>
       </div>
     </div>
