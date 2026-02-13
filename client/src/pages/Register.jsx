@@ -1,3 +1,4 @@
+// client/src/pages/Register.jsx
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
@@ -12,18 +13,19 @@ export default function Register() {
     password: "",
     confirmPassword: "",
   });
+
   const [message, setMessage] = useState("");
   const [type, setType] = useState(""); // "success" | "error"
   const [loading, setLoading] = useState(false);
 
-  // Redirect to home if session exists
+  // Redirect if user is already logged in
   useEffect(() => {
     const checkSession = async () => {
       try {
         const res = await axios.get(`${API}/get-session`, { withCredentials: true });
         if (res.data.session) navigate("/home");
-      } catch {
-        // ignore errors
+      } catch (err) {
+        console.log("Session check failed:", err.message);
       }
     };
     checkSession();
@@ -44,8 +46,15 @@ export default function Register() {
       return;
     }
 
+    if (!form.name || !form.username || !form.password) {
+      setType("error");
+      setMessage("All fields are required");
+      return;
+    }
+
     try {
       setLoading(true);
+
       const res = await axios.post(
         `${API}/register`,
         { name: form.name, username: form.username, password: form.password },
@@ -63,7 +72,7 @@ export default function Register() {
         setMessage(res.data.message || "Registration failed");
       }
     } catch (err) {
-      console.error(err);
+      console.error("Register Error:", err);
       setType("error");
       setMessage(err.response?.data?.message || "Cannot connect to server");
     } finally {
@@ -95,6 +104,7 @@ export default function Register() {
             required
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
           />
+
           <input
             name="username"
             placeholder="Username"
@@ -103,6 +113,7 @@ export default function Register() {
             required
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
           />
+
           <input
             name="password"
             type="password"
@@ -112,6 +123,7 @@ export default function Register() {
             required
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
           />
+
           <input
             name="confirmPassword"
             type="password"
