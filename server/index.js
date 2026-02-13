@@ -12,18 +12,17 @@ const PORT = process.env.PORT || 3000;
 // ======================
 // CORS CONFIG
 // ======================
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://to-do-list-l38d.vercel.app" // your Vercel frontend URL
-];
+// Allow localhost and any Vercel domain dynamically
+const allowedOrigins = ["http://localhost:5173"];
+const vercelRegex = /^https:\/\/.*\.vercel\.app$/;
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true); // allow non-browser requests (like Postman)
-    if (allowedOrigins.indexOf(origin) === -1) {
-      return callback(new Error(`CORS policy: The origin ${origin} is not allowed`), false);
+    if (!origin) return callback(null, true); // allow Postman / curl / server-side requests
+    if (allowedOrigins.includes(origin) || vercelRegex.test(origin)) {
+      return callback(null, true);
     }
-    return callback(null, true);
+    return callback(new Error(`CORS policy: The origin ${origin} is not allowed`), false);
   },
   credentials: true, // allow cookies
 }));
@@ -45,7 +44,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === "production", // must be true in prod (HTTPS)
+    secure: process.env.NODE_ENV === "production", // HTTPS only
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 24, // 1 day
@@ -104,7 +103,11 @@ app.post("/login", async (req, res) => {
 
 app.get("/logout", (req, res) => {
   req.session.destroy(() => {
-    res.clearCookie("connect.sid", { path: "/", sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", secure: process.env.NODE_ENV === "production" });
+    res.clearCookie("connect.sid", {
+      path: "/",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      secure: process.env.NODE_ENV === "production"
+    });
     res.json({ success: true });
   });
 });
@@ -229,6 +232,15 @@ app.post("/update-item/:id", async (req, res) => {
     console.error("UPDATE ITEM ERROR:", err);
     res.status(500).json({ success: false, message: err.message });
   }
+});
+
+// ======================
+// GLOBAL ERROR HANDLER (optional for CORS)
+app.use((err, req, res, next) => {
+  if (err.message.includes("CORS")) {
+    return res.status(403).json({ success: false, message: err.message });
+  }
+  next(err);
 });
 
 // ======================
