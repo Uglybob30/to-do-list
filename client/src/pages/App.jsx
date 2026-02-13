@@ -1,10 +1,11 @@
+// client/src/pages/Login.jsx
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 
 export default function Login() {
   const navigate = useNavigate();
-  const API = import.meta.env.VITE_API_URL || "http://localhost:3000";
+  const API = import.meta.env.VITE_API_URL;
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -18,8 +19,8 @@ export default function Login() {
       try {
         const res = await axios.get(`${API}/get-session`, { withCredentials: true });
         if (res.data.session) navigate("/home");
-      } catch {
-        // ignore
+      } catch (err) {
+        console.log("Session check failed:", err.message);
       }
     };
     checkSession();
@@ -47,7 +48,7 @@ export default function Login() {
         setMessage(res.data.message || "Invalid username or password");
       }
     } catch (err) {
-      console.error(err);
+      console.error("Login Error:", err);
       setType("error");
       setMessage(err.response?.data?.message || "Cannot connect to server");
     } finally {
@@ -57,7 +58,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 via-white to-blue-100 px-4">
-      <div className="w-full max-w-sm bg-white rounded-3xl shadow-xl border border-gray-200 p-8 transition-all">
+      <div className="w-full max-w-sm bg-white rounded-3xl shadow-xl border border-gray-200 p-8">
         <h1 className="text-3xl font-bold text-center mb-6 text-gray-800 tracking-wide">
           Welcome Back
         </h1>

@@ -14,20 +14,23 @@ const PORT = process.env.PORT || 3000;
 // ======================
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://to-do-list-l38d.vercel.app",
-  "https://to-do-list-l38d-lyqovsgz9-jericos-projects-f7248b2e.vercel.app"
+  "https://to-do-list-7b6c.vercel.app", // <- add your new Vercel frontend URL
 ];
 
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true); // allow non-browser requests like Postman
-    if (allowedOrigins.indexOf(origin) === -1) {
-      return callback(new Error(`CORS policy: The origin ${origin} is not allowed`), false);
-    }
-    return callback(null, true);
-  },
-  credentials: true // allow cookies to be sent
-}));
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true); // allow Postman / server-to-server
+      if (allowedOrigins.indexOf(origin) === -1) {
+        return callback(new Error(`CORS policy: The origin ${origin} is not allowed`), false);
+      }
+      return callback(null, true);
+    },
+    credentials: true, // allow cookies
+  })
+);
+
 
 // ======================
 // BODY PARSING
@@ -38,20 +41,23 @@ app.use(express.urlencoded({ extended: true }));
 // ======================
 // SESSION CONFIG
 // ======================
-app.set("trust proxy", 1); // required if behind a proxy (like Render)
+app.set("trust proxy", 1); // required if behind Vercel / Render proxy
 
-app.use(session({
-  name: "connect.sid",
-  secret: process.env.SESSION_SECRET || "supersecretkey",
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24 // 1 day
-  }
-}));
+app.use(
+  session({
+    name: "connect.sid",
+    secret: process.env.SESSION_SECRET || "supersecretkey",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production", // must be true on HTTPS
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24, // 1 day
+    },
+  })
+);
+
 
 // ======================
 // TEST DB CONNECTION
@@ -59,6 +65,13 @@ app.use(session({
 pool.query("SELECT NOW()")
   .then(res => console.log("✅ DB connected:", res.rows[0]))
   .catch(err => console.error("❌ DB connection error:", err));
+
+
+app.use((req, res, next) => {
+  console.log("Incoming request from origin:", req.headers.origin);
+  next();
+});
+
 
 // ======================
 // AUTH ROUTES

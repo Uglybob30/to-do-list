@@ -5,7 +5,7 @@ import axios from "axios";
 
 export default function Register() {
   const navigate = useNavigate();
-  const API = import.meta.env.VITE_API_URL || "http://localhost:3000";
+  const API = import.meta.env.VITE_API_URL;
 
   const [form, setForm] = useState({
     name: "",
@@ -13,12 +13,11 @@ export default function Register() {
     password: "",
     confirmPassword: "",
   });
-
   const [message, setMessage] = useState("");
-  const [type, setType] = useState(""); // "success" | "error"
+  const [type, setType] = useState(""); // success | error
   const [loading, setLoading] = useState(false);
 
-  // Redirect if user is already logged in
+  // Redirect if session exists
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -40,21 +39,20 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!form.name || !form.username || !form.password || !form.confirmPassword) {
+      setType("error");
+      setMessage("All fields are required");
+      return;
+    }
+
     if (form.password !== form.confirmPassword) {
       setType("error");
       setMessage("Passwords do not match");
       return;
     }
 
-    if (!form.name || !form.username || !form.password) {
-      setType("error");
-      setMessage("All fields are required");
-      return;
-    }
-
     try {
       setLoading(true);
-
       const res = await axios.post(
         `${API}/register`,
         { name: form.name, username: form.username, password: form.password },
@@ -63,9 +61,8 @@ export default function Register() {
 
       if (res.data.success) {
         setType("success");
-        setMessage("Registered successfully! Redirecting to login...");
+        setMessage("Registered successfully! Redirecting...");
         setForm({ name: "", username: "", password: "", confirmPassword: "" });
-
         setTimeout(() => navigate("/"), 1000);
       } else {
         setType("error");
@@ -81,8 +78,8 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+      <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-md">
         <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Register</h2>
 
         {message && (
@@ -104,7 +101,6 @@ export default function Register() {
             required
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
           />
-
           <input
             name="username"
             placeholder="Username"
@@ -113,7 +109,6 @@ export default function Register() {
             required
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
           />
-
           <input
             name="password"
             type="password"
@@ -123,7 +118,6 @@ export default function Register() {
             required
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
           />
-
           <input
             name="confirmPassword"
             type="password"
