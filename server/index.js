@@ -12,20 +12,24 @@ const PORT = process.env.PORT || 3000;
 // ======================
 // CORS CONFIG
 // ======================
-// Allow localhost and any Vercel domain dynamically
-const allowedOrigins = ["http://localhost:5173"];
-const vercelRegex = /^https:\/\/.*\.vercel\.app$/;
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://to-do-list-l38d.vercel.app", // replace with your actual frontend URL
+  "https://to-do-list-l38d-lyqovsgz9-jericos-projects-f7248b2e.vercel.app"
+];
 
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true); // allow Postman / curl / server-side requests
-    if (allowedOrigins.includes(origin) || vercelRegex.test(origin)) {
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true); // allow non-browser requests
+      if (allowedOrigins.indexOf(origin) === -1) {
+        return callback(new Error(`CORS policy: The origin ${origin} is not allowed`), false);
+      }
       return callback(null, true);
-    }
-    return callback(new Error(`CORS policy: The origin ${origin} is not allowed`), false);
-  },
-  credentials: true, // allow cookies
-}));
+    },
+    credentials: true
+  })
+);
 
 // ======================
 // BODY PARSING
@@ -38,38 +42,44 @@ app.use(express.urlencoded({ extended: true }));
 // ======================
 app.set("trust proxy", 1); // required for secure cookies behind proxy
 
-app.use(session({
-  name: "connect.sid",
-  secret: process.env.SESSION_SECRET || "supersecretkey",
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === "production", // HTTPS only
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24, // 1 day
-  },
-}));
+app.use(
+  session({
+    name: "connect.sid",
+    secret: process.env.SESSION_SECRET || "supersecretkey",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 // 1 day
+    }
+  })
+);
 
 // ======================
 // TEST DB CONNECTION
 // ======================
-pool.query("SELECT NOW()")
-  .then(res => console.log("✅ DB connected:", res.rows[0]))
-  .catch(err => console.error("❌ DB connection error:", err));
+pool
+  .query("SELECT NOW()")
+  .then((res) => console.log("✅ DB connected:", res.rows[0]))
+  .catch((err) => console.error("❌ DB connection error:", err));
 
 // ======================
 // AUTH ROUTES
 // ======================
 app.post("/register", async (req, res) => {
-  try {
-    const { username, password, name } = req.body;
-    if (!username || !password || !name) return res.json({ success: false, message: "Incomplete data" });
+  const { username, password, name } = req.body;
+  if (!username || !password || !name)
+    return res.status(400).json({ success: false, message: "Incomplete data" });
 
+  try {
     const exists = await pool.query("SELECT id FROM users WHERE username=$1", [username]);
-    if (exists.rows.length > 0) return res.json({ success: false, message: "User exists" });
+    if (exists.rows.length > 0)
+      return res.status(409).json({ success: false, message: "User already exists" });
 
     const hashed = await hashPassword(password);
+
     const result = await pool.query(
       "INSERT INTO users (username, password, name) VALUES ($1,$2,$3) RETURNING id, username, name",
       [username, hashed, name]
@@ -78,26 +88,29 @@ app.post("/register", async (req, res) => {
     req.session.user = result.rows[0];
     res.json({ success: true, user: req.session.user });
   } catch (err) {
-    console.error("REGISTER ERROR:", err);
-    res.status(500).json({ success: false, message: err.message });
+    console.error("REGISTER ERROR:", err.message);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 
 app.post("/login", async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password)
+    return res.status(400).json({ success: false, message: "Incomplete data" });
+
   try {
-    const { username, password } = req.body;
     const result = await pool.query("SELECT * FROM users WHERE username=$1", [username]);
-    if (!result.rows.length) return res.json({ success: false, message: "User not found" });
+    if (!result.rows.length) return res.status(404).json({ success: false, message: "User not found" });
 
     const user = result.rows[0];
     const isMatch = await comparePassword(password, user.password);
-    if (!isMatch) return res.json({ success: false, message: "Incorrect password" });
+    if (!isMatch) return res.status(401).json({ success: false, message: "Incorrect password" });
 
     req.session.user = { id: user.id, username: user.username, name: user.name };
     res.json({ success: true, user: req.session.user });
   } catch (err) {
-    console.error("LOGIN ERROR:", err);
-    res.status(500).json({ success: false, message: err.message });
+    console.error("LOGIN ERROR:", err.message);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 
@@ -125,35 +138,36 @@ app.get("/get-list", async (req, res) => {
     const result = await pool.query("SELECT * FROM list ORDER BY created_at DESC");
     res.json({ success: true, list: result.rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error("GET LIST ERROR:", err.message);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 
 app.post("/add-list", async (req, res) => {
-  try {
-    const { listTitle } = req.body;
-    if (!listTitle || listTitle.trim() === "") return res.json({ success: false, message: "List title required" });
+  const { listTitle } = req.body;
+  if (!listTitle || listTitle.trim() === "")
+    return res.status(400).json({ success: false, message: "List title required" });
 
+  try {
     const result = await pool.query(
       "INSERT INTO list (title) VALUES ($1) RETURNING *",
       [listTitle]
     );
-
     res.json({ success: true, list: result.rows[0] });
   } catch (err) {
-    console.error("ADD LIST ERROR:", err);
-    res.status(500).json({ success: false, message: err.message });
+    console.error("ADD LIST ERROR:", err.message);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 
 app.post("/delete-list/:id", async (req, res) => {
+  const { id } = req.params;
   try {
-    const { id } = req.params;
     await pool.query("DELETE FROM list WHERE id=$1", [id]);
     res.json({ success: true });
   } catch (err) {
-    console.error("DELETE LIST ERROR:", err);
-    res.status(500).json({ success: false, message: err.message });
+    console.error("DELETE LIST ERROR:", err.message);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 
@@ -161,86 +175,75 @@ app.post("/delete-list/:id", async (req, res) => {
 // ITEM ROUTES
 // ======================
 app.get("/get-items/:id", async (req, res) => {
+  const { id } = req.params;
   try {
-    const { id } = req.params;
     const result = await pool.query("SELECT * FROM items WHERE list_id=$1 ORDER BY created_at", [id]);
     res.json({ success: true, items: result.rows });
   } catch (err) {
-    console.error("GET ITEMS ERROR:", err);
-    res.status(500).json({ success: false, message: err.message });
+    console.error("GET ITEMS ERROR:", err.message);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 
 app.post("/add-item", async (req, res) => {
-  try {
-    const { listId, description } = req.body;
-    if (!listId || !description || description.trim() === "") return res.json({ success: false, message: "Missing listId or description" });
+  const { listId, description } = req.body;
+  if (!listId || !description || description.trim() === "")
+    return res.status(400).json({ success: false, message: "Missing listId or description" });
 
+  try {
     const result = await pool.query(
       "INSERT INTO items (list_id, description) VALUES ($1,$2) RETURNING *",
       [listId, description]
     );
-
     res.json({ success: true, item: result.rows[0] });
   } catch (err) {
-    console.error("ADD ITEM ERROR:", err);
-    res.status(500).json({ success: false, message: err.message });
+    console.error("ADD ITEM ERROR:", err.message);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 
 app.post("/delete-item/:id", async (req, res) => {
+  const { id } = req.params;
   try {
-    const { id } = req.params;
     await pool.query("DELETE FROM items WHERE id=$1", [id]);
     res.json({ success: true });
   } catch (err) {
-    console.error("DELETE ITEM ERROR:", err);
-    res.status(500).json({ success: false, message: err.message });
+    console.error("DELETE ITEM ERROR:", err.message);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 
 app.post("/update-item/:id", async (req, res) => {
+  const { id } = req.params;
+  const { description, status } = req.body;
+  if (!description && status === undefined)
+    return res.status(400).json({ success: false, message: "Nothing to update" });
+
   try {
-    const { id } = req.params;
-    const { description, status } = req.body;
-
-    if (!description && !status) return res.json({ success: false, message: "Nothing to update" });
-
-    let query = "UPDATE items SET ";
+    const updates = [];
     const params = [];
     let idx = 1;
 
     if (description) {
-      query += `description=$${idx} `;
+      updates.push(`description=$${idx}`);
       params.push(description);
       idx++;
     }
 
-    if (status) {
-      if (params.length > 0) query += ", ";
-      query += `status=$${idx} `;
+    if (status !== undefined) {
+      updates.push(`status=$${idx}`);
       params.push(status);
       idx++;
     }
 
-    query += `WHERE id=$${idx} RETURNING *`;
     params.push(id);
-
+    const query = `UPDATE items SET ${updates.join(", ")} WHERE id=$${idx} RETURNING *`;
     const result = await pool.query(query, params);
     res.json({ success: true, item: result.rows[0] });
   } catch (err) {
-    console.error("UPDATE ITEM ERROR:", err);
-    res.status(500).json({ success: false, message: err.message });
+    console.error("UPDATE ITEM ERROR:", err.message);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
-});
-
-// ======================
-// GLOBAL ERROR HANDLER (optional for CORS)
-app.use((err, req, res, next) => {
-  if (err.message.includes("CORS")) {
-    return res.status(403).json({ success: false, message: err.message });
-  }
-  next(err);
 });
 
 // ======================
