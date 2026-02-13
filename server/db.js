@@ -1,11 +1,19 @@
 // server/db.js
-import "dotenv/config";  // <-- ensure env vars loaded
+import "dotenv/config";  // Load .env variables
 import pkg from "pg";
 const { Pool } = pkg;
 
-if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is missing");
+// Ensure all required env vars exist
+const requiredVars = ["PGUSER", "PGPASSWORD", "PGHOST", "PGDATABASE", "PGPORT"];
+requiredVars.forEach(v => {
+  if (!process.env[v]) throw new Error(`${v} is missing in .env`);
+});
 
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL.trim(),
-  ssl: { rejectUnauthorized: false },
+  user: process.env.PGUSER,
+  password: process.env.PGPASSWORD,
+  host: process.env.PGHOST,
+  database: process.env.PGDATABASE,
+  port: process.env.PGPORT,
+  ssl: { rejectUnauthorized: false }  // Required for Neon
 });

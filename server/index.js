@@ -8,9 +8,7 @@ import { hashPassword, comparePassword } from "./components/hash.js";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ======================
-// CORS CONFIG
-// ======================
+
 const allowedOrigins = [
   "http://localhost:5173",
   "https://to-do-list-three-alpha-83.vercel.app" // add your Vercel frontend URL
