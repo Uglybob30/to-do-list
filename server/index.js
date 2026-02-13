@@ -1,3 +1,4 @@
+// server/index.js
 import "dotenv/config";
 import express from "express";
 import { pool } from "./db.js";
@@ -8,24 +9,24 @@ import { hashPassword, comparePassword } from "./components/hash.js";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-
+// ======================
+// CORS CONFIG
+// ======================
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://to-do-list-three-alpha-83.vercel.app" // add your Vercel frontend URL
+  "https://to-do-list-l38d.vercel.app" // your Vercel frontend URL
 ];
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true); // allow non-browser requests
-      if (allowedOrigins.indexOf(origin) === -1) {
-        return callback(new Error(`CORS policy: The origin ${origin} is not allowed`), false);
-      }
-      return callback(null, true);
-    },
-    credentials: true,
-  })
-);
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true); // allow non-browser requests (like Postman)
+    if (allowedOrigins.indexOf(origin) === -1) {
+      return callback(new Error(`CORS policy: The origin ${origin} is not allowed`), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true, // allow cookies
+}));
 
 // ======================
 // BODY PARSING
@@ -36,22 +37,20 @@ app.use(express.urlencoded({ extended: true }));
 // ======================
 // SESSION CONFIG
 // ======================
-app.set("trust proxy", 1); // needed for secure cookies behind proxy
+app.set("trust proxy", 1); // required for secure cookies behind proxy
 
-app.use(
-  session({
-    name: "connect.sid",
-    secret: process.env.SESSION_SECRET || "mySecretKey",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === "production", // true in prod (HTTPS)
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      httpOnly: true,
-      maxAge: 1000 * 60 * 60 * 24, // 1 day
-    },
-  })
-);
+app.use(session({
+  name: "connect.sid",
+  secret: process.env.SESSION_SECRET || "supersecretkey",
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === "production", // must be true in prod (HTTPS)
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24, // 1 day
+  },
+}));
 
 // ======================
 // TEST DB CONNECTION
@@ -105,7 +104,7 @@ app.post("/login", async (req, res) => {
 
 app.get("/logout", (req, res) => {
   req.session.destroy(() => {
-    res.clearCookie("connect.sid");
+    res.clearCookie("connect.sid", { path: "/", sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", secure: process.env.NODE_ENV === "production" });
     res.json({ success: true });
   });
 });
