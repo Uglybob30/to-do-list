@@ -14,21 +14,36 @@ const PORT = process.env.PORT || 3000;
 // ======================
 const allowedOrigins = [
   "http://localhost:5173",
-  "to-do-list-three-alpha-83.vercel.app",
+  "https://to-do-list-three-alpha-83.vercel.app",
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) === -1) {
-        return callback(new Error(`CORS policy: The origin ${origin} is not allowed`), false);
-      }
-      return callback(null, true);
+      if (!origin) return callback(null, true); // allow curl/postman
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error(`CORS policy: The origin ${origin} is not allowed`), false);
     },
-    credentials: true,
+    credentials: true, // allow cookies
   })
 );
+
+// ======================
+// HANDLE PRE-FLIGHT OPTIONS
+// ======================
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+      res.header("Access-Control-Allow-Origin", origin);
+    }
+    res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.header("Access-Control-Allow-Credentials", "true");
+    return res.sendStatus(204); // No Content
+  }
+  next();
+});
 
 // ======================
 // BODY PARSING
@@ -39,7 +54,7 @@ app.use(express.urlencoded({ extended: true }));
 // ======================
 // SESSION CONFIG
 // ======================
-app.set("trust proxy", 1);
+app.set("trust proxy", 1); // needed behind proxies like Render
 
 app.use(
   session({
@@ -48,10 +63,10 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      secure: process.env.NODE_ENV === "production", // HTTPS only
+      sameSite: "none", // cross-origin cookies
       httpOnly: true,
-      maxAge: 1000 * 60 * 60 * 24,
+      maxAge: 1000 * 60 * 60 * 24, // 1 day
     },
   })
 );
@@ -122,8 +137,8 @@ app.get("/logout", (req, res) => {
   req.session.destroy(() => {
     res.clearCookie("connect.sid", {
       path: "/",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      secure: process.env.NODE_ENV === "production"
+      sameSite: "none",
+      secure: process.env.NODE_ENV === "production",
     });
     res.json({ success: true });
   });
@@ -175,24 +190,21 @@ app.post("/delete-list/:id", async (req, res) => {
   }
 });
 
-// NEW ✅ UPDATE LIST TITLE
 app.post("/update-list/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const { listTitle } = req.body;
 
-    if (!listTitle || listTitle.trim() === "") {
+    if (!listTitle || listTitle.trim() === "")
       return res.status(400).json({ success: false, message: "List title cannot be empty" });
-    }
 
     const result = await pool.query(
       "UPDATE list SET title=$1 WHERE id=$2 RETURNING *",
       [listTitle, id]
     );
 
-    if (result.rows.length === 0) {
+    if (result.rows.length === 0)
       return res.status(404).json({ success: false, message: "List not found" });
-    }
 
     res.json({ success: true, list: result.rows[0] });
   } catch (err) {
