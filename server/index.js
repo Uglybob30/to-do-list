@@ -14,23 +14,21 @@ const PORT = process.env.PORT || 3000;
 // ======================
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://to-do-list-7b6c.vercel.app", // <- add your new Vercel frontend URL
+  "https://to-do-list-7b6c.vercel.app",
 ];
-
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin) return callback(null, true); // allow Postman / server-to-server
+      if (!origin) return callback(null, true);
       if (allowedOrigins.indexOf(origin) === -1) {
         return callback(new Error(`CORS policy: The origin ${origin} is not allowed`), false);
       }
       return callback(null, true);
     },
-    credentials: true, // allow cookies
+    credentials: true,
   })
 );
-
 
 // ======================
 // BODY PARSING
@@ -41,7 +39,7 @@ app.use(express.urlencoded({ extended: true }));
 // ======================
 // SESSION CONFIG
 // ======================
-app.set("trust proxy", 1); // required if behind Vercel / Render proxy
+app.set("trust proxy", 1);
 
 app.use(
   session({
@@ -50,14 +48,13 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === "production", // must be true on HTTPS
+      secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       httpOnly: true,
-      maxAge: 1000 * 60 * 60 * 24, // 1 day
+      maxAge: 1000 * 60 * 60 * 24,
     },
   })
 );
-
 
 // ======================
 // TEST DB CONNECTION
@@ -66,12 +63,10 @@ pool.query("SELECT NOW()")
   .then(res => console.log("✅ DB connected:", res.rows[0]))
   .catch(err => console.error("❌ DB connection error:", err));
 
-
 app.use((req, res, next) => {
   console.log("Incoming request from origin:", req.headers.origin);
   next();
 });
-
 
 // ======================
 // AUTH ROUTES
@@ -95,7 +90,7 @@ app.post("/register", async (req, res) => {
     req.session.user = result.rows[0];
     res.json({ success: true, user: req.session.user });
   } catch (err) {
-    console.error("REGISTER ERROR FULL:", err);
+    console.error("REGISTER ERROR:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 });
@@ -176,6 +171,32 @@ app.post("/delete-list/:id", async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error("DELETE LIST ERROR:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+// NEW ✅ UPDATE LIST TITLE
+app.post("/update-list/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { listTitle } = req.body;
+
+    if (!listTitle || listTitle.trim() === "") {
+      return res.status(400).json({ success: false, message: "List title cannot be empty" });
+    }
+
+    const result = await pool.query(
+      "UPDATE list SET title=$1 WHERE id=$2 RETURNING *",
+      [listTitle, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "List not found" });
+    }
+
+    res.json({ success: true, list: result.rows[0] });
+  } catch (err) {
+    console.error("UPDATE LIST ERROR:", err);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
